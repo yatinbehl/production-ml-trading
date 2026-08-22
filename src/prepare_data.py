@@ -1,7 +1,14 @@
 FEATURE_COLUMNS = [
     "daily_return",
     "momentum_5d",
+    "momentum_10d",
+    "momentum_20d",
     "volatility_5d",
+    "volatility_10d",
+    "volatility_20d",
+    "price_vs_sma_10d",
+    "price_vs_sma_20d",
+    "volume_ratio_20d",
 ]
 
 TARGET_COLUMN = "target"

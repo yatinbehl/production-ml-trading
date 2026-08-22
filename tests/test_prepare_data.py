@@ -1,29 +1,31 @@
-from src.prepare_data import prepare_ml_data, time_series_split
 import pandas as pd
 
-from src.prepare_data import prepare_ml_data
+from src.prepare_data import (
+    FEATURE_COLUMNS,
+    prepare_ml_data,
+    time_series_split,
+)
 
 
 def test_prepare_ml_data():
-    data = pd.DataFrame(
-        {
-            "daily_return": [0.01, None, -0.02],
-            "momentum_5d": [0.05, 0.03, -0.01],
-            "volatility_5d": [0.02, 0.01, 0.03],
-            "target": [1, 0, 0],
-        }
-    )
+    data = {
+        column: [0.1, 0.2, 0.3]
+        for column in FEATURE_COLUMNS
+    }
 
-    X, y = prepare_ml_data(data)
+    data["daily_return"] = [0.01, None, -0.02]
+    data["target"] = [1, 0, 0]
+
+    df = pd.DataFrame(data)
+
+    X, y = prepare_ml_data(df)
 
     assert len(X) == 2
     assert len(y) == 2
-    assert X.columns.tolist() == [
-        "daily_return",
-        "momentum_5d",
-        "volatility_5d",
-    ]
+    assert X.columns.tolist() == FEATURE_COLUMNS
     assert y.tolist() == [1, 0]
+
+
 def test_time_series_split():
     X = pd.DataFrame(
         {

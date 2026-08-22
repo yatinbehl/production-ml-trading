@@ -5,6 +5,8 @@ from src.features import (
     add_daily_return,
     add_momentum,
     add_volatility,
+    add_price_vs_sma,
+    add_volume_ratio,
 )
 
 
@@ -50,3 +52,36 @@ def test_add_volatility():
     assert pd.isna(result.loc[0, "volatility_5d"])
     assert pd.isna(result.loc[4, "volatility_5d"])
     assert pd.isna(result.loc[5, "volatility_5d"]) is False
+
+def test_add_price_vs_sma():
+    data = pd.DataFrame(
+        {
+            "Close": [100, 110, 120],
+        }
+    )
+
+    result = add_price_vs_sma(data, window=3)
+
+    assert pd.isna(result.loc[0, "price_vs_sma_3d"])
+    assert pd.isna(result.loc[1, "price_vs_sma_3d"])
+
+    expected = 120 / 110 - 1
+
+    assert result.loc[2, "price_vs_sma_3d"] == pytest.approx(expected)
+
+
+def test_add_volume_ratio():
+    data = pd.DataFrame(
+        {
+            "Volume": [100, 200, 300],
+        }
+    )
+
+    result = add_volume_ratio(data, window=3)
+
+    assert pd.isna(result.loc[0, "volume_ratio_3d"])
+    assert pd.isna(result.loc[1, "volume_ratio_3d"])
+
+    expected = 300 / 200
+
+    assert result.loc[2, "volume_ratio_3d"] == pytest.approx(expected)

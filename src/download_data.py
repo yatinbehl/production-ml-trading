@@ -1,6 +1,6 @@
 import yfinance as yf
 
-data = yf.download("AAPL", period="1mo")
+data = yf.download("AAPL", period="10y")
 
 data.to_csv("data/AAPL_raw.csv")
 

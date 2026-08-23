@@ -14,8 +14,11 @@ DATA_FILE = "data/AAPL_ml.csv"
 
 def main():
     df = pd.read_csv(DATA_FILE)
+    dates = pd.to_datetime(df["Date"])
 
     X, y = prepare_ml_data(df)
+    valid_indices = X.index
+    dates = dates.loc[valid_indices]
 
     splits = expanding_window_splits(
         n_samples=len(X),
@@ -31,6 +34,7 @@ def main():
 
         y_train = y.iloc[train_idx]
         y_test = y.iloc[test_idx]
+        test_dates = dates.iloc[test_idx]
 
         model = Pipeline(
             [
@@ -47,12 +51,24 @@ def main():
         accuracy = accuracy_score(y_test, predictions)
         auc = roc_auc_score(y_test, probabilities)
 
+        majority_class = y_train.mode()[0]
+
+        baseline_predictions = [majority_class] * len(y_test)
+
+        baseline_accuracy = accuracy_score(
+            y_test,
+            baseline_predictions,
+        )
+
         results.append(
             {
                 "split": split_number,
+                "test_start": test_dates.iloc[0].date(),
+                "test_end": test_dates.iloc[-1].date(),
                 "train_size": len(X_train),
                 "test_size": len(X_test),
-                "accuracy": accuracy,
+                "baseline_accuracy": baseline_accuracy,
+                "model_accuracy": accuracy,
                 "roc_auc": auc,
             }
         )
@@ -61,9 +77,12 @@ def main():
 
     print(results_df)
 
-    print("\nAverage accuracy:", round(results_df["accuracy"].mean(), 3))
+    print("\nAverage accuracy:", round(results_df["model_accuracy"].mean(), 3))
     print("Average ROC-AUC:", round(results_df["roc_auc"].mean(), 3))
-
+    print(
+        "Average baseline accuracy:",
+        round(results_df["baseline_accuracy"].mean(), 3),
+    )
 
 if __name__ == "__main__":
     main()

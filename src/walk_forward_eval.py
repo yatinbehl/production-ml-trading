@@ -6,10 +6,13 @@ from src.evaluate import evaluate_classifier
 from src.models import (
     create_logistic_model,
     create_random_forest_model,
+    get_random_forest_feature_importance,
 )
 from src.prepare_data import prepare_ml_data
 from src.walk_forward import expanding_window_splits
 
+
+pd.set_option("display.max_columns", None)
 
 DATA_FILE = "data/AAPL_ml.csv"
 
@@ -23,6 +26,7 @@ def evaluate_model(
     splits,
 ):
     results = []
+    feature_importance_results = []
 
     for split_number, (train_idx, test_idx) in enumerate(
         splits,
@@ -40,6 +44,26 @@ def evaluate_model(
 
         model.fit(X_train, y_train)
 
+        if model_name == "Random Forest":
+            importance = get_random_forest_feature_importance(
+                model,
+                X_train.columns,
+            )
+
+            print(
+                f"\nRandom Forest feature importance - Split {split_number}:"
+            )
+            print(importance)
+
+            for feature_name, importance_value in importance.items():
+                feature_importance_results.append(
+                    {
+                        "split": split_number,
+                        "feature": feature_name,
+                        "importance": importance_value,
+                    }
+                )
+
         predictions = model.predict(X_test)
         probabilities = model.predict_proba(X_test)[:, 1]
 
@@ -50,7 +74,10 @@ def evaluate_model(
         )
 
         majority_class = y_train.mode()[0]
-        baseline_predictions = [majority_class] * len(y_test)
+
+        baseline_predictions = [
+            majority_class
+        ] * len(y_test)
 
         baseline_accuracy = accuracy_score(
             y_test,
@@ -63,6 +90,8 @@ def evaluate_model(
                 "split": split_number,
                 "test_start": test_dates.iloc[0].date(),
                 "test_end": test_dates.iloc[-1].date(),
+                "train_positive_rate": y_train.mean(),
+                "test_positive_rate": y_test.mean(),
                 "baseline_accuracy": baseline_accuracy,
                 "model_accuracy": metrics["accuracy"],
                 "precision": metrics["precision"],
@@ -75,7 +104,10 @@ def evaluate_model(
             }
         )
 
-    return pd.DataFrame(results)
+    return (
+        pd.DataFrame(results),
+        pd.DataFrame(feature_importance_results),
+    )
 
 
 def main():
@@ -101,7 +133,7 @@ def main():
     all_results = []
 
     for model_name, model_factory in models.items():
-        results = evaluate_model(
+        results, feature_importance = evaluate_model(
             model_name,
             model_factory,
             X,
@@ -111,6 +143,21 @@ def main():
         )
 
         all_results.append(results)
+
+        if not feature_importance.empty:
+            importance_summary = (
+                feature_importance.groupby("feature")["importance"]
+                .agg(["mean", "std"])
+                .sort_values(
+                    "mean",
+                    ascending=False,
+                )
+            )
+
+            print(
+                "\nRandom Forest feature importance summary:"
+            )
+            print(importance_summary)
 
     results_df = pd.concat(
         all_results,
@@ -125,6 +172,8 @@ def main():
                 "split",
                 "test_start",
                 "test_end",
+                "train_positive_rate",
+                "test_positive_rate",
                 "baseline_accuracy",
                 "model_accuracy",
                 "precision",
